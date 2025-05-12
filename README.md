@@ -19,6 +19,9 @@
 
 ```bash
 Audio_filter/
+├── Audio_filter/                    # MATLAB App安裝包
+│   ├── for_redistribution/          
+│       └── MyAppInstaller_web       # 安裝用的主程式
 ├── Legacy/                          # 過去的版本的程式碼
 │   ├── Version_0/                   # v0，全部用.m檔畫
 │   │   ├── createButtons.m          # v0，負責創造按鈕
@@ -142,7 +145,7 @@ graph TD
 
 ## 2. 使用說明
 
-1. 使用MATLAB開啟Audio_filter.mlapp並執行App（或直接安裝app）
+1. 使用MATLAB開啟Audio_filter.mlapp並執行App（或啟動MyAppInstaller_web安裝app）
 2. 載入或錄製音訊（未載入音訊就使用其他功能會顯示警告提示）
 3. 進行音訊分析與編輯
 4. 匯出編輯後的音訊並儲存
