@@ -855,7 +855,7 @@ classdef Audio_filter < matlab.apps.AppBase
             [fileNameToRead, filePath] = uigetfile({'*.wav', 'wav file (*.wav)'}, 'Selecting file');
             
             % 使用者按取消
-            if isequal(app.fileName, 0)
+            if isequal(fileNameToRead, 0)
                 uialert(app.UIFigure, '未選取檔案', 'Warning', 'Icon', 'warning');
             else
                 % 提示成功讀取
