@@ -19,127 +19,43 @@
 
 ```bash
 Audio_filter/
-├── Audio_filter/                    # MATLAB App安裝包
+├── Audio_filter/                 # MATLAB App安裝包
 │   ├── for_redistribution/          
-│       └── MyAppInstaller_web       # 安裝用的主程式
-├── Legacy/                          # 過去的版本的程式碼
-│   ├── Version_0/                   # v0，全部用.m檔畫
-│   │   ├── createButtons.m          # v0，負責創造按鈕
-│   │   ├── main.m                   # v0，主程式
-│   │   ├── playAudio.m              # v0，負責播放音效
-│   │   ├── plotGraphs.m             # v0，負責繪製圖表
-│   │   ├── plotSpectrogram.m        # v0，負責繪製Spectrogram
-│   │   └── readAudio.m              # v0，負責讀取音訊
+│       └── MyAppInstaller_web    # 安裝用的主程式
+├── Legacy/                           # 過去的版本的程式碼
+│   ├── Version_0/                    # v0，全部用.m檔畫
+│   │   ├── createButtons.m           # v0，負責創造按鈕
+│   │   ├── main.m                    # v0，主程式
+│   │   ├── playAudio.m               # v0，負責播放音效
+│   │   ├── plotGraphs.m              # v0，負責繪製圖表
+│   │   ├── plotSpectrogram.m         # v0，負責繪製Spectrogram
+│   │   └── readAudio.m               # v0，負責讀取音訊
 │   ├── Version_1/
-│   │   ├── Audio_filter_v1.mlapp    # v1，改成mlapp的主程式
-│   │   └── Audio_filter_v1_code.m   # v1，展示程式碼用的.m檔
+│   │   ├── Audio_filter_v1.mlapp     # v1，改成mlapp的主程式
+│   │   └── Audio_filter_v1_code.m    # v1，展示程式碼用的.m檔
 │   └── Version_2/
-│       ├── Audio_filter_v2.mlapp    # v2，mlapp的主程式    
-│       └── Audio_filter_v2_code.m   # v2，展示程式碼用的.m檔
+│       ├── Audio_filter_v2.mlapp     # v2，mlapp的主程式    
+│       └── Audio_filter_v2_code.m    # v2，展示程式碼用的.m檔
 ├── Program/
-│   ├── Audio_filter_v.mlapp         # v3，最終版本mlapp主程式
-│   └── Audio_filter_v3_code.m       # v3，展示程式碼用的.m檔
-└── Test_audio/                      # 測試用音訊
-    └── Bird_singing.wav             
+│   ├── Audio_filter_v.mlapp      # v3，最終版本mlapp主程式
+│   └── Audio_filter_v3_code.m    # v3，展示程式碼用的.m檔
+├── Saved audio/    # 測試儲存功能時儲存的檔案
+│   ├── Saving_test1_bird.wav        
+│   ├── Saving_test2_bird.wav    
+│   └── Saving_test2_bird.wav    
+└── Test_audio/     # 測試用檔案
+    ├── Bird_singing.wav               
+    ├── Chirp_100Hz_to_8000Hz.wav    
+    ├── Mixed_440Hz_880Hz.wav
+    ├── Sawtooth_440Hz.wav
+    ├── Sine_440Hz.wav
+    ├── Square_440Hz.wav
+    ├── Stereo_440Hz_880Hz.wav
+    ├── White_noise.wav
+    └── funky-drum.wav    
 
 ```
 > [點此下載完整專案檔案](https://drive.google.com/drive/folders/1Ym4wv47xHs1qsiwbYdr8gWOBZ44WPJea?usp=sharing)
-
-### 元件互動流程圖
-
-```mermaid
-graph TD
-    subgraph 可互動UI元件
-        GraphButtonGroup["GraphButtonGroup"]
-        FiltersFIRDropDown["FiltersFIRDropDown"]
-        CustomfilterDropDown["CustomfilterDropDown"]
-        ApplyButton["ApplyButton"]
-        VolumeSlider["VolumeSlider"]
-        SpeedSlider["SpeedSlider"]
-        PlayButton["PlayButton"]
-        LoadButton["LoadButton"]
-        RecordButton["RecordButton"]
-        SaveButton["SaveButton"]
-        DarkmodeSwitch["DarkmodeSwitch"]
-    end
-
-
-    subgraph 處理流程
-        Reset_UI
-        Show_info
-        Show_widget
-        Show_widget_by_custom
-        Plot_graph
-        Reset_graph
-        Plot_waveform
-        Plot_spectrum
-        Plot_spectrogram
-        Update_audio
-        Filter_audio
-        Create_filter
-        Create_custom_filter
-        Check_input
-        Update_title
-        Change_theme
-    end
-
-
-    GraphButtonGroup --> Plot_graph
-    GraphButtonGroup --> Update_title
-
-    FiltersFIRDropDown --> Update_audio
-    FiltersFIRDropDown --> Show_info
-    FiltersFIRDropDown --> Plot_graph
-    FiltersFIRDropDown --> Update_title
-
-    CustomfilterDropDown --> Show_info
-
-    ApplyButton --> Update_audio
-    ApplyButton --> Show_info
-    ApplyButton --> Plot_graph
-    ApplyButton --> Update_title
-
-    VolumeSlider --> Update_audio
-    VolumeSlider --> Show_info
-    VolumeSlider --> Plot_graph
-    VolumeSlider --> Update_title
-
-    SpeedSlider --> Update_audio
-    SpeedSlider --> Show_info
-    SpeedSlider --> Plot_graph
-    SpeedSlider --> Update_title
-
-    PlayButton --> player
-
-    LoadButton --> Reset_UI
-    LoadButton --> Show_info
-    LoadButton --> Plot_graph
-    LoadButton --> Update_title
-
-    RecordButton --> Reset_UI
-    RecordButton --> Show_info
-    RecordButton --> Plot_graph
-    RecordButton --> Update_title
-
-    DarkmodeSwitch --> Change_theme
-
-
-    Show_info --> Show_widget
-    Show_widget --> Show_widget_by_custom
-
-    Plot_graph --> Reset_graph
-    Plot_graph --> Plot_waveform
-    Plot_graph --> Plot_spectrum
-    Plot_graph --> Plot_spectrogram
-
-    Update_audio --> Filter_audio
-    Filter_audio --> Create_filter
-    Create_filter --> Create_custom_filter
-    Create_custom_filter --> Check_input
-
-    Change_theme --> Plot_graph
-
-```
 
 ---
 
@@ -155,20 +71,20 @@ graph TD
 ## 3. 主要功能
 
 |類別|功能描述|
-|:-----:|---------------------------------------|
-|圖表切換|波形圖、頻譜圖、時頻譜，動態標題|
-|濾波功能|包含內建的低通、高通、帶通、帶阻濾波器及自訂濾波器（含輸入防呆）|
-|音訊編輯|使用拉桿調整音訊的音量、速度|
-|播放控制|播放編輯後的音訊，附播放狀態指示燈|
-|音訊管理|可讀取音訊（`.wav`檔）、錄製音訊、儲存編輯後的音訊|
-|顏色主題|Dark mode / Light mode主題切換，保護眼睛|
+|-----|---------------------------------------|
+|**圖表切換**|波形圖、頻譜圖、時頻譜，動態標題|
+|**濾波功能**|包含內建的低通、高通、帶通、帶阻濾波器及自訂濾波器（含輸入防呆）|
+|**音訊編輯**|使用拉桿調整音訊的音量、速度|
+|**播放控制**|播放編輯後的音訊，附播放狀態指示燈|
+|**音訊管理**|可讀取音訊（`.wav`檔）、錄製音訊、儲存編輯後的音訊|
+|**顏色主題**|Dark mode / Light mode主題切換，保護眼睛|
 
 ### 介面說明
 
 ![image](https://github.com/user-attachments/assets/96278548-2822-44cb-a6ed-df3bc59596b8)
 
 |物件|功能描述|
-|:-----:|---------------------------------------|
+|-----|---------------------------------------|
 |**Chart**|根據其他選項改變繪製資料、標題、顏色|
 |**Graph**|選擇要觀察的圖表，預設為`Waveform`|
 |**Filters (FIR)**|選擇要套用的濾波器，包含內建的`Low-pass`、`High-pass`、`Band-pass`、`Band-stop`和`Custom`，預設為`None`|
@@ -198,16 +114,15 @@ graph TD
 ## 4. 未來延伸方向
 
 |延伸項目|說明|
-|:----------:|---------------------------------------------|
-|段落選取|讓使用者選取音訊的其中某部分進行編輯、操作|
-|撥放進度|播放時間顯示、進度條|
-|暫停功能|新增暫停功能，不用每次都從頭播|
-|編輯前後比較|新增一個圖表來比較編輯前後的音訊|
-|儲存自訂參數|讓使用者可記憶上次使用的自訂濾波器參數|
-|支援其他格式音訊檔案|如 `.mp3`, `.flac`|
-|（進階）多組濾波器|使用多個濾波器|
-|（進階）音訊種類分類|結合機器學習，把輸入的音訊歸類並推薦濾波器參數|
-|（目標）相似音訊尋找|結合機器學習，試著做出小型Shazam !|
+|----------|---------------------------------------------|
+|**段落選取**|讓使用者選取音訊的其中某部分進行編輯、操作|
+|**撥放進度**|播放時間顯示、進度條|
+|**暫停功能**|新增暫停功能，不用每次都從頭播|
+|**編輯前後比較**|新增一個圖表來比較編輯前後的音訊|
+|**儲存自訂參數**|讓使用者可記憶上次使用的自訂濾波器參數|
+|**多重濾波器**|使用多個濾波器|
+|**音訊種類分類**|結合機器學習，把輸入的音訊歸類並推薦濾波器參數|
+|**相似音訊尋找**|結合機器學習，試著做出小型Shazam !|
 
 ---
 
