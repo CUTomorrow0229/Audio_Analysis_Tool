@@ -1,4 +1,4 @@
-# Audio Filter
+# Audio Analysis Tool
 
 使用MATLAB App Designer開發的音訊分析與濾波應用  
 主要功能為音訊視覺化、訊號調整（震幅、速度、濾波）  
