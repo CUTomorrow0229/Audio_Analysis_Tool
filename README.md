@@ -2,6 +2,7 @@
 
 使用MATLAB App Designer開發的音訊分析與濾波應用  
 主要功能為音訊視覺化、訊號調整（震幅、速度、濾波）  
+
 ![image](https://github.com/user-attachments/assets/1c8ece96-eac2-472a-ab83-41493394ebb4)
 
 > 目錄  
@@ -19,9 +20,6 @@
 
 ```bash
 Audio_filter/
-├── Audio_filter/                 # MATLAB App安裝包
-│   ├── for_redistribution/          
-│       └── MyAppInstaller_web    # 安裝用的主程式
 ├── Legacy/                           # 過去的版本的程式碼
 │   ├── Version_0/                    # v0，全部用.m檔畫
 │   │   ├── createButtons.m           # v0，負責創造按鈕
