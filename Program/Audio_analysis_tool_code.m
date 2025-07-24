@@ -6,22 +6,22 @@ classdef Audio_analysis_tool < matlab.apps.AppBase
         DarkmodeSwitch               matlab.ui.control.Switch
         DarkmodeSwitchLabel          matlab.ui.control.Label
         ApplyButton                  matlab.ui.control.Button
-        CustomfilterDropDown         matlab.ui.control.DropDown
-        CustomfilterDropDownLabel    matlab.ui.control.Label
+        CustomFilterDropDown         matlab.ui.control.DropDown
+        CustomFilterDropDownLabel    matlab.ui.control.Label
         TimesEditField               matlab.ui.control.NumericEditField
         TimesEditFieldLabel          matlab.ui.control.Label
         MaxAmplitudeEditField        matlab.ui.control.NumericEditField
         MaxAmplitudeEditFieldLabel   matlab.ui.control.Label
         SampleRateEditField          matlab.ui.control.NumericEditField
-        SampleRateEditFieldLabel     matlab.ui.control.Label
+        SampleRateLabel              matlab.ui.control.Label
         StopbandFrequency2EditField  matlab.ui.control.NumericEditField
-        StopbandFrequency2EditField_2Label  matlab.ui.control.Label
+        StopbandFrequency2Label      matlab.ui.control.Label
         PassbandFrequency2EditField  matlab.ui.control.NumericEditField
-        PassbandFrequency2EditFieldLabel  matlab.ui.control.Label
+        PassbandFrequency2Label      matlab.ui.control.Label
         StopbandFrequencyEditField   matlab.ui.control.NumericEditField
-        StopbandFrequencyEditFieldLabel  matlab.ui.control.Label
+        StopbandFrequencyLabel       matlab.ui.control.Label
         PassbandFrequencyEditField   matlab.ui.control.NumericEditField
-        PassbandFrequencyEditFieldLabel  matlab.ui.control.Label
+        PassbandFrequencyLabel       matlab.ui.control.Label
         RecordButton                 matlab.ui.control.Button
         SpeedSlider                  matlab.ui.control.Slider
         SpeedSliderLabel             matlab.ui.control.Label
@@ -49,63 +49,78 @@ classdef Audio_analysis_tool < matlab.apps.AppBase
 
     
     properties (Access = private)
-        fileName         string             % 讀入檔名
-        lineColor1       double             % 波形圖繪製顏色
-        lineColor2       double             % 頻譜圖繪製顏色
-        yOriginal        double             % 原始音訊
-        yCurrent         double             % 修改後的音訊
-        fsOriginal       double             % 原始採樣率
-        fsCurrent        double             % 修改後的採樣率
-        channel          int32              % (修改後的)聲道數
-        duration         double             % (修改後的)總時長
-        maxAmp           double             % (修改後的)最大震幅
-        recorder         audiorecorder      % 錄音器
-        recordStatement  logical = false    % 錄製狀態
-        player           audioplayer        % 播放器
-        playStatement    logical = false    % 播放狀態
+        % Audio information
+        fileName         string    % Name of user-loaded audio file
+        yOriginal        double    % Original audio data
+        fsOriginal       double    % Original sample rate
+        yCurrent         double    % Manipulated audio data
+        fsCurrent        double    % Manipulated sample rate
+        channel          int32     % # of channel of audio
+        duration         double    % Duration of audio
+        maxAmp           double    % Amplitude of audio
         
-        filter           digitalFilter      % 濾波器種類
-        lowPassBand      double             % low-pass參數
-        lowStopBand      double             % low-pass參數
-        highPassBand     double             % high-pass參數
-        highStopBand     double             % high-pass參數
-        bpPassBand1      double             % band-pass參數
-        bpPassBand2      double             % band-pass參數
-        bpStopBand1      double             % band-pass參數
-        bpStopBand2      double             % band-pass參數
-        bsPassBand1      double             % band-stop參數
-        bsPassBand2      double             % band-stop參數
-        bsStopBand1      double             % band-stop參數
-        bsStopBand2      double             % band-stop參數
-        firstTimeCustom  logical = true     % 是否為第一次切到Custom(顯示說明)
-        minTransition    double = 1000      % 檢查用的最小Transition
-        minPassBandWidth double = 2000      % 檢查用的最小PassBand
-        minStopBandWidth double = 2000      % 檢查用的最小StopBand
+
+        % App status
+        recorder         audiorecorder      % Audio recorder (from MATLAB)
+        recordStatement  logical = false    % is recording or not
+        player           audioplayer        % Audio player (from MATLAB)
+        playStatement    logical = false    % is playing or not
+        
+
+        % Filter information
+        filter           digitalFilter    % Type of filter
+        lowPassBand      double    % Parameters of low-pass filter
+        lowStopBand      double             
+        highPassBand     double    % Parameters of high-pass filter
+        highStopBand     double             
+        bpPassBand1      double    % Parameter of band-pass filter
+        bpPassBand2      double             
+        bpStopBand1      double             
+        bpStopBand2      double             
+        bsPassBand1      double    % Parameter of band-stop filter
+        bsPassBand2      double             
+        bsStopBand1      double             
+        bsStopBand2      double             
+        firstTimeCustom  logical = true    % is the first time switch to custom filter or not
+        minTransition    double = 1000     % Minimum transition (check input)
+        minPassBandWidth double = 2000     % Minimum pass band
+        minStopBandWidth double = 2000     % Minimum stop band
+
+
+        % Properties for display playing progress
+        playingTimer     timer           % Timer of playing status
+        progressLine                     % Vertical line to show playing progress
+        currentTime      double = 0      % Current playing time
+        
+
+        % Plot color
+        lineColor1       double    % Color of waveform
+        lineColor2       double    % Color of spectrum
+        progressColor    double    % Color of playing progress line
     end
+
     
     methods (Access = private)
-        
-        % 重製所有UI
+        % Reset all ui
         function Reset_UI(app)
-            % 圖形選項
+            % Graph
             app.GraphButtonGroup.SelectedObject = app.WaveformButton;
             
-            % 濾波器選項
+            % Filter
             app.FiltersFIRDropDown.Value = 'None';
 
-            % 自訂濾波器選項
-            app.CustomfilterDropDown.Visible = "off";
-            app.CustomfilterDropDownLabel.Visible = "off";
-            app.CustomfilterDropDown.Value = 'Low-pass';
+            % Custom filter
+            app.CustomFilterDropDown.Visible = "off";
+            app.CustomFilterDropDownLabel.Visible = "off";
+            app.CustomFilterDropDown.Value = 'Low-pass';
 
-            % 套用自訂濾波器按鈕
             app.ApplyButton.Visible = "off";
             
-            % 兩個Slider
+            % Volume and speed sliders
             app.VolumeSlider.Value = 1;
             app.SpeedSlider.Value = 1;
 
-            % 播放狀態
+            % play statement
             if app.playStatement
                 stop(app.player);
                 app.PlayButton.Text = 'Play';
@@ -113,36 +128,36 @@ classdef Audio_analysis_tool < matlab.apps.AppBase
                 app.playStatement = false;
             end
 
-            % 底下四個Edit field
+            % Parameter edit fields
             app.PassbandFrequencyEditField.Visible = "off";
-            app.PassbandFrequencyEditFieldLabel.Visible = "off";
+            app.PassbandFrequencyLabel.Visible = "off";
             app.PassbandFrequencyEditField.Value = 3000;
             
             app.StopbandFrequencyEditField.Visible = "off";
-            app.StopbandFrequencyEditFieldLabel.Visible = "off";
+            app.StopbandFrequencyLabel.Visible = "off";
             app.StopbandFrequencyEditField.Value = 5000;
 
             app.PassbandFrequency2EditField.Visible = "off";
-            app.PassbandFrequency2EditFieldLabel.Visible = "off";
+            app.PassbandFrequency2Label.Visible = "off";
             app.PassbandFrequency2EditField.Value = 6000;
 
             app.StopbandFrequency2EditField.Visible = "off";
-            app.StopbandFrequency2EditField_2Label.Visible = "off";
+            app.StopbandFrequency2Label.Visible = "off";
             app.StopbandFrequency2EditField.Value = 8000;
         end
         
-        % 顯示參數等資訊
+
+        % Show parameters
         function Show_info(app)
-            % 最大震幅、取樣率、時間(常態顯示)
+            % Max amplitude, sample rate, time (always display)
             app.MaxAmplitudeEditField.Value = app.maxAmp;
             app.SampleRateEditField.ValueDisplayFormat = '%.0f';
             app.SampleRateEditField.Value = app.fsCurrent;
             app.TimesEditField.Value = app.duration;
 
-            % 顯示物件
             app.Show_widget();
 
-            % 填入濾波器數值(如果有用)
+            % Show parameters of filter (if used)
             switch app.FiltersFIRDropDown.Value
                 case 'Low-pass'
                     app.PassbandFrequencyEditField.Value = app.lowPassBand;
@@ -163,114 +178,114 @@ classdef Audio_analysis_tool < matlab.apps.AppBase
             end
         end
         
-        % 管理物件的Visible和Editable
+
+        % Control the visibility and editability of ui widgets (Decide by chosen built-in filter)
         function Show_widget(app)
-            % 濾波器選項
             if isequal(app.FiltersFIRDropDown.Value, 'Low-pass') || isequal(app.FiltersFIRDropDown.Value, 'High-pass') 
                 app.PassbandFrequencyEditField.Visible = "on";
-                app.PassbandFrequencyEditFieldLabel.Visible = "on";
+                app.PassbandFrequencyLabel.Visible = "on";
                 app.PassbandFrequency2EditField.Editable = "off";
 
                 app.StopbandFrequencyEditField.Visible = "on";
-                app.StopbandFrequencyEditFieldLabel.Visible = "on";
+                app.StopbandFrequencyLabel.Visible = "on";
                 app.StopbandFrequencyEditField.Editable = "off";
 
                 app.PassbandFrequency2EditField.Visible = "off";
-                app.PassbandFrequency2EditFieldLabel.Visible = "off";
+                app.PassbandFrequency2Label.Visible = "off";
                 
                 app.StopbandFrequency2EditField.Visible = "off";
-                app.StopbandFrequency2EditField_2Label.Visible = "off";
+                app.StopbandFrequency2Label.Visible = "off";
 
-                app.CustomfilterDropDown.Visible = "off";
-                app.CustomfilterDropDownLabel.Visible = "off";
+                app.CustomFilterDropDown.Visible = "off";
+                app.CustomFilterDropDownLabel.Visible = "off";
                 app.ApplyButton.Visible = "off";
             elseif isequal(app.FiltersFIRDropDown.Value, 'None')
                 app.PassbandFrequencyEditField.Visible = "off";
-                app.PassbandFrequencyEditFieldLabel.Visible = "off";
+                app.PassbandFrequencyLabel.Visible = "off";
 
                 app.StopbandFrequencyEditField.Visible = "off";
-                app.StopbandFrequencyEditFieldLabel.Visible = "off";
+                app.StopbandFrequencyLabel.Visible = "off";
 
                 app.PassbandFrequency2EditField.Visible = "off";
-                app.PassbandFrequency2EditFieldLabel.Visible = "off";
+                app.PassbandFrequency2Label.Visible = "off";
 
                 app.StopbandFrequency2EditField.Visible = "off";
-                app.StopbandFrequency2EditField_2Label.Visible = "off";
+                app.StopbandFrequency2Label.Visible = "off";
 
-                app.CustomfilterDropDown.Visible = "off";
-                app.CustomfilterDropDownLabel.Visible = "off";
+                app.CustomFilterDropDown.Visible = "off";
+                app.CustomFilterDropDownLabel.Visible = "off";
                 app.ApplyButton.Visible = "off";
             elseif isequal(app.FiltersFIRDropDown.Value, 'Band-pass') || isequal(app.FiltersFIRDropDown.Value, 'Band-stop')
                 app.PassbandFrequencyEditField.Visible = "on";
-                app.PassbandFrequencyEditFieldLabel.Visible = "on";
+                app.PassbandFrequencyLabel.Visible = "on";
                 app.PassbandFrequencyEditField.Editable = "off";
 
                 app.StopbandFrequencyEditField.Visible = "on";
-                app.StopbandFrequencyEditFieldLabel.Visible = "on";
+                app.StopbandFrequencyLabel.Visible = "on";
                 app.StopbandFrequencyEditField.Editable = "off";
 
                 app.PassbandFrequency2EditField.Visible = "on";
-                app.PassbandFrequency2EditFieldLabel.Visible = "on";
+                app.PassbandFrequency2Label.Visible = "on";
                 app.PassbandFrequency2EditField.Editable = "off";
 
                 app.StopbandFrequency2EditField.Visible = "on";
-                app.StopbandFrequency2EditField_2Label.Visible = "on";
+                app.StopbandFrequency2Label.Visible = "on";
                 app.StopbandFrequency2EditField.Editable = "off";
 
-                app.CustomfilterDropDown.Visible = "off";
-                app.CustomfilterDropDownLabel.Visible = "off";
+                app.CustomFilterDropDown.Visible = "off";
+                app.CustomFilterDropDownLabel.Visible = "off";
                 app.ApplyButton.Visible = "off";
             else
-                app.CustomfilterDropDown.Visible = "on";
-                app.CustomfilterDropDownLabel.Visible = "on";
+                app.CustomFilterDropDown.Visible = "on";
+                app.CustomFilterDropDownLabel.Visible = "on";
                 app.ApplyButton.Visible = "on";
 
                 app.Show_widget_by_custom();
             end
         end
         
-        % 管理物件的Visible和Editable(by custom)
+
+        % Control the visibility and editability of ui widgets (Decide by chosen custom filter)
         function Show_widget_by_custom(app)
-            % 自訂濾波器選項
-            if isequal(app.CustomfilterDropDown.Value, 'Low-pass') || isequal(app.CustomfilterDropDown.Value, 'High-pass') 
+            if isequal(app.CustomFilterDropDown.Value, 'Low-pass') || isequal(app.CustomFilterDropDown.Value, 'High-pass') 
                 app.PassbandFrequencyEditField.Visible = "on";
-                app.PassbandFrequencyEditFieldLabel.Visible = "on";
+                app.PassbandFrequencyLabel.Visible = "on";
                 app.PassbandFrequencyEditField.Editable = "on";
 
                 app.StopbandFrequencyEditField.Visible = "on";
-                app.StopbandFrequencyEditFieldLabel.Visible = "on";
+                app.StopbandFrequencyLabel.Visible = "on";
                 app.StopbandFrequencyEditField.Editable = "on";
 
                 app.PassbandFrequency2EditField.Visible = "off";
-                app.PassbandFrequency2EditFieldLabel.Visible = "off";
+                app.PassbandFrequency2Label.Visible = "off";
                 
                 app.StopbandFrequency2EditField.Visible = "off";
-                app.StopbandFrequency2EditField_2Label.Visible = "off";
+                app.StopbandFrequency2Label.Visible = "off";
             else
                 app.PassbandFrequencyEditField.Visible = "on";
-                app.PassbandFrequencyEditFieldLabel.Visible = "on";
+                app.PassbandFrequencyLabel.Visible = "on";
                 app.PassbandFrequencyEditField.Editable = "on";
 
                 app.StopbandFrequencyEditField.Visible = "on";
-                app.StopbandFrequencyEditFieldLabel.Visible = "on";
+                app.StopbandFrequencyLabel.Visible = "on";
                 app.StopbandFrequencyEditField.Editable = "on";
 
                 app.PassbandFrequency2EditField.Visible = "on";
-                app.PassbandFrequency2EditFieldLabel.Visible = "on";
+                app.PassbandFrequency2Label.Visible = "on";
                 app.PassbandFrequency2EditField.Editable = "on";
 
                 app.StopbandFrequency2EditField.Visible = "on";
-                app.StopbandFrequency2EditField_2Label.Visible = "on";
+                app.StopbandFrequency2Label.Visible = "on";
                 app.StopbandFrequency2EditField.Editable = "on";
             end
         end
 
-        % 根據按鈕繪製圖表
+
+        % Plot the cohsen graph
         function Plot_graph(app)
-            % reset圖表
             app.Reset_graph();
 
-            % 繪製圖表
+            % Decide by "graph" radio button
             if app.WaveformButton.Value
                 app.Plot_waveform();
             elseif app.SpectrumButton.Value
@@ -280,31 +295,33 @@ classdef Audio_analysis_tool < matlab.apps.AppBase
             end
         end
 
-        % 重製圖表
+
+        % Reset the entire graph
         function Reset_graph(app)
-            % 清除繪製內容
+            % Clear graph
             cla(app.UIAxes);
             
-            % 重製座標軸
+            % Reset axis
             app.UIAxes.XScale = 'linear';
             app.UIAxes.YScale = 'linear';
             axis(app.UIAxes, 'xy');
             app.UIAxes.XLimMode = 'auto'; 
             app.UIAxes.YLimMode = 'auto';
             
-            % 刪除colorbar
+            % Remove colorbar
             cbar = findall(app.UIAxes.Parent, 'Type', 'ColorBar');
             if ~isempty(cbar)
                 delete(cbar);
             end
         end
         
-        % 繪製波形圖
+
+        % Plot waveform
         function Plot_waveform(app)
-            % 計算x軸(時間)
+            % Compute x (time)
             t = (0:length(app.yCurrent) - 1)/app.fsCurrent;
             
-            % 繪製圖表
+            % Plot waveform
             plot(app.UIAxes, t, app.yCurrent, Color=app.lineColor1);
 
             title(app.UIAxes, 'Waveform');
@@ -312,25 +329,26 @@ classdef Audio_analysis_tool < matlab.apps.AppBase
             ylabel(app.UIAxes, 'Amplitude');
         end
         
-        % 繪製頻譜圖
-        function Plot_spectrum(app)
-            % 傅立葉轉換
-            temp1 = fft(app.yCurrent);
-            len = length(app.yCurrent);
-            temp2 = abs(temp1/len); % 標準化
-            temp3 = temp2(1:floor(len / 2 + 1)); % FFT對稱，取一半就好
-            temp3(2:end-1) = 2 * temp3(2:end-1); % 能量守恆，要把另外一半的能量補回來
-            xFreq = app.fsCurrent * (0:floor(len / 2)) / len;
-            yMag = temp3;
 
-            % 繪製圖表
+        % Plot spectrum
+        function Plot_spectrum(app)
+            % fft
+            t1 = fft(app.yCurrent);
+            len = length(app.yCurrent);
+            t2 = abs(t1 / len);
+            t3 = t2(1:floor(len / 2 + 1));
+            t3(2:end - 1) = 2 * t3(2:end - 1);
+            xFreq = app.fsCurrent * (0:floor(len / 2)) / len;
+            yMag = t3;
+
+            % Plot spectrum
             plot(app.UIAxes, xFreq, yMag, Color=app.lineColor2);
 
             title(app.UIAxes, 'Spectrum');
             xlabel(app.UIAxes, 'Frequency (Hz)');
             ylabel(app.UIAxes, 'Amplitude');
 
-            % 設定x軸範圍(人類聽力範圍或Nyquist frequency)
+            % Limit x-axis (max frequency of human ear or Nyquist frequency)
             maxFreq = 20000;
             if app.fsCurrent / 2 < maxFreq
                 maxFreq = app.fsCurrent / 2;
@@ -339,20 +357,21 @@ classdef Audio_analysis_tool < matlab.apps.AppBase
             xlim(app.UIAxes, [0, maxFreq]);
         end
         
-        % 繪製時頻譜
+
+        % Plot spectrogram
         function Plot_spectrogram(app)
-            % 雙聲道處理，只畫左聲道
+            % More than 1 channel: only take first channel to plot
             if app.channel > 1
                 dataToPlot = app.yCurrent(:,1);
             else
                 dataToPlot = app.yCurrent;
             end
 
-            % 計算強度、頻率、時間
-            [s, f, t] = spectrogram(dataToPlot, hamming(512), 256, 1024, app.fsCurrent);
+            % Compute amplitude, frequency and time
+            [a, f, t] = spectrogram(dataToPlot, hamming(512), 256, 1024, app.fsCurrent);
 
-            % 繪製圖表
-            imagesc(app.UIAxes, t, f, 20 * log10(abs(s)));
+            % Plot spectrogram
+            imagesc(app.UIAxes, t, f, 20 * log10(abs(a)));
             
             title(app.UIAxes, 'Spectrogram');
             xlabel(app.UIAxes, 'Time (s)');
@@ -363,7 +382,8 @@ classdef Audio_analysis_tool < matlab.apps.AppBase
             ylim(app.UIAxes, [0, app.fsCurrent / 2]);
         end
         
-        % 沒有載入資料就碰其他物件
+
+        % Prevent user from using objects without loaded any audio data
         function permission = Nload_first_data(app)
             if isempty(app.fsCurrent)
                 uialert(app.UIFigure, '尚未載入音訊資料', 'Error', 'Icon', 'error');
@@ -373,55 +393,58 @@ classdef Audio_analysis_tool < matlab.apps.AppBase
             end
         end
         
-        % 更新音訊資料
-        function Update_audio(app)
-            % 先暫停播放
-            if app.playStatement
-                stop(app.player);
-                app.PlayButton.Text = 'Play';
-                app.PlaystatementLamp.Color = 'red';
-                app.playStatement = false;
-            end
 
-            % 調整取樣率
+        % Update manipulated audio data
+        function Update_audio(app)
+            % Stop playing
+            app.Stop_playing_audio();
+
+            % Manipulate sample rate
             app.fsCurrent = app.fsOriginal * app.SpeedSlider.Value;
 
-            % 濾波
+            % Create and apply filter
             app.Filter_audio();
 
-            % 調整音量
+            % Manipulate amplitude
             app.yCurrent = app.yCurrent * app.VolumeSlider.Value;
 
-            % 更新duration
+            % Update druration
             app.duration = length(app.yCurrent) / app.fsCurrent;
             
-            % 更新最大震幅
+            % Updata max amplitude
             app.maxAmp = max(abs(app.yCurrent), [], 'all');
         end
         
-        % 濾波處理
+        
+        % Create and apply filter
         function Filter_audio(app)
-            MAX_FS = 100000;
+            fsMax = 100000;
             nyquist = app.fsCurrent / 2;
-
+        
+            % Limit max and min sample rates to prevent crash and error
             if (isequal(app.FiltersFIRDropDown.Value, 'None'))
                 app.yCurrent = app.yOriginal;
-            elseif app.fsCurrent > MAX_FS    % 限制最大取樣率，避免當機
-                uialert(app.UIFigure, '取樣率過高，無法設計濾波器，已自動停用濾波器', 'Error', 'Icon', 'error');
+            elseif app.fsCurrent > fsMax
+                uialert(app.UIFigure, '取樣率過高，無法設計濾波器，已自動停用濾波器', ...
+                        'Error', 'Icon', 'error');
+                
                 app.FiltersFIRDropDown.Value = 'None';
                 app.yCurrent = app.yOriginal;
-            elseif nyquist < 6000    % 限制最小取樣率，避免錯誤
-                uialert(app.UIFigure, '取樣率過低，無法設計濾波器，已自動停用濾波器', 'Error', 'Icon', 'error');
+            elseif nyquist < 6000
+                uialert(app.UIFigure, '取樣率過低，無法設計濾波器，已自動停用濾波器', ...
+                        'Error', 'Icon', 'error');
+                
                 app.FiltersFIRDropDown.Value = 'None';
                 app.yCurrent = app.yOriginal;
             else
+                % Sample rate is permitted -> create filter
                 app.Create_filter();
                 
-                % 多聲道處理
+                % Apply filter to every channel
                 if app.channel > 1
                     app.yCurrent = zeros(size(app.yOriginal));
                     for i = 1:app.channel
-                        app.yCurrent(:, i) = filtfilt(app.filter, app.yOriginal(:, i));
+                        app.yCurrent(:,i) = filtfilt(app.filter,app.yOriginal(:,i));
                     end
                 else
                     app.yCurrent = filtfilt(app.filter, app.yOriginal);
@@ -429,19 +452,23 @@ classdef Audio_analysis_tool < matlab.apps.AppBase
             end
         end
 
-        % 創建濾波器
+
+        % Create built-in filter (from user's choice)
         function Create_filter(app)
             switch app.FiltersFIRDropDown.Value
                 case 'Low-pass'
+                    % Reset first time status
                     app.firstTimeCustom = true;
 
+                    % Default parameters
                     app.lowPassBand = 3000;
                     app.lowStopBand = 5000;
 
+                    % Create filter (low-pass)
                     app.filter = designfilt('lowpassfir', ...
-                                    PassbandFrequency = app.lowPassBand, ...
-                                    StopbandFrequency = app.lowStopBand, ...
-                                    SampleRate = app.fsCurrent);
+                                            PassbandFrequency = app.lowPassBand, ...
+                                            StopbandFrequency = app.lowStopBand, ...
+                                            SampleRate = app.fsCurrent);
                 case 'High-pass'
                     app.firstTimeCustom = true;
                     
@@ -449,9 +476,9 @@ classdef Audio_analysis_tool < matlab.apps.AppBase
                     app.highPassBand = 5000;
 
                     app.filter = designfilt('highpassfir', ...
-                                    StopbandFrequency = app.highStopBand, ...
-                                    PassbandFrequency = app.highPassBand, ...
-                                    SampleRate = app.fsCurrent);
+                                            StopbandFrequency = app.highStopBand, ...
+                                            PassbandFrequency = app.highPassBand, ...
+                                            SampleRate = app.fsCurrent);
                 case 'Band-pass'
                     app.firstTimeCustom = true;
                     
@@ -461,11 +488,11 @@ classdef Audio_analysis_tool < matlab.apps.AppBase
                     app.bpStopBand2 = 6000;
 
                     app.filter = designfilt('bandpassfir', ...
-                                    StopbandFrequency1 = app.bpStopBand1, ...
-                                    PassbandFrequency1 = app.bpPassBand1, ...
-                                    PassbandFrequency2 = app.bpPassBand2, ...
-                                    StopbandFrequency2 = app.bpStopBand2, ...
-                                    SampleRate = app.fsCurrent);
+                                            StopbandFrequency1 = app.bpStopBand1, ...
+                                            PassbandFrequency1 = app.bpPassBand1, ...
+                                            PassbandFrequency2 = app.bpPassBand2, ...
+                                            StopbandFrequency2 = app.bpStopBand2, ...
+                                            SampleRate = app.fsCurrent);
                 case 'Band-stop'
                     app.firstTimeCustom = true;
 
@@ -475,114 +502,102 @@ classdef Audio_analysis_tool < matlab.apps.AppBase
                     app.bsPassBand2 = 6000;
 
                     app.filter = designfilt('bandstopfir', ...
-                                    PassbandFrequency1 = app.bsPassBand1, ...
-                                    StopbandFrequency1 = app.bsStopBand1, ...
-                                    StopbandFrequency2 = app.bsStopBand2, ...
-                                    PassbandFrequency2 = app.bsPassBand2, ...
-                                    SampleRate = app.fsCurrent);
+                                            PassbandFrequency1 = app.bsPassBand1, ...
+                                            StopbandFrequency1 = app.bsStopBand1, ...
+                                            StopbandFrequency2 = app.bsStopBand2, ...
+                                            PassbandFrequency2 = app.bsPassBand2, ...
+                                            SampleRate = app.fsCurrent);
                 case 'Custom'
+                    % It's first time -> show info alert
                     if app.firstTimeCustom
                         uialert(app.UIFigure, '請選擇濾波器種類和參數', 'Customize filter', 'Icon', 'info');
                         app.firstTimeCustom = false;
                     end
+                    % Create custom filter
                     app.Create_custom_filter();
             end
         end
 
+
+        % Create custom filter (from user's choice)
         function Create_custom_filter(app)
-            switch app.CustomfilterDropDown.Value
+            switch app.CustomFilterDropDown.Value
                 case 'Low-pass'
-                    % 讀取種類
-                    customFilter = 'lowpassfir';
-                    
-                    % 確認輸入
+                    % Check input
                     app.Check_input();
                     
-                    % 讀取數值
+                    % Get type of filter and input parameter from user
+                    customFilter = 'lowpassfir';
                     app.lowStopBand = app.StopbandFrequencyEditField.Value;
                     app.lowPassBand = app.PassbandFrequencyEditField.Value;
 
-                    % 建立濾波器
+                    % Create custom filter
                     app.filter = designfilt(customFilter, ...
-                            StopbandFrequency = app.lowStopBand, ...
-                            PassbandFrequency = app.lowPassBand, ...
-                            SampleRate = app.fsCurrent);
+                                            StopbandFrequency = app.lowStopBand, ...
+                                            PassbandFrequency = app.lowPassBand, ...
+                                            SampleRate = app.fsCurrent);
                 case 'High-pass'
-                    % 讀取種類
-                    customFilter = 'highpassfir';
-                    
-                    % 確認輸入
                     app.Check_input();
-                    
-                    % 讀取數值
+                                        
+                    customFilter = 'highpassfir';
                     app.highStopBand = app.StopbandFrequencyEditField.Value;
                     app.highPassBand = app.PassbandFrequencyEditField.Value;
                     
-                    % 建立濾波器
                     app.filter = designfilt(customFilter, ...
-                            StopbandFrequency = app.highStopBand, ...
-                            PassbandFrequency = app.highPassBand, ...
-                            SampleRate = app.fsCurrent);
+                                            StopbandFrequency = app.highStopBand, ...
+                                            PassbandFrequency = app.highPassBand, ...
+                                            SampleRate = app.fsCurrent);
                 case 'Band-pass'
-                    % 讀取種類
-                    customFilter = 'bandpassfir';
-
-                    % 確認輸入
                     app.Check_input();
-
-                    % 讀取數值
+                    
+                    customFilter = 'bandpassfir';
                     app.bpStopBand1 = app.StopbandFrequencyEditField.Value;
                     app.bpPassBand1 = app.PassbandFrequencyEditField.Value;
                     app.bpPassBand2 = app.PassbandFrequency2EditField.Value;
                     app.bpStopBand2 = app.StopbandFrequency2EditField.Value;
                     
-                    % 建立濾波器
                     app.filter = designfilt(customFilter, ...
-                            PassbandFrequency1 = app.bpPassBand1, ...
-                            StopbandFrequency1 = app.bpStopBand1, ...
-                            StopbandFrequency2 = app.bpStopBand2, ...
-                            PassbandFrequency2 = app.bpPassBand2, ...
-                            SampleRate = app.fsCurrent);
+                                            PassbandFrequency1 = app.bpPassBand1, ...
+                                            StopbandFrequency1 = app.bpStopBand1, ...
+                                            StopbandFrequency2 = app.bpStopBand2, ...
+                                            PassbandFrequency2 = app.bpPassBand2, ...
+                                            SampleRate = app.fsCurrent);
                 case 'Band-stop'
-                    % 讀取種類
-                    customFilter = 'bandstopfir';
-
-                    % 確認輸入
                     app.Check_input();
-
-                    % 讀取數值
+                    
+                    customFilter = 'bandstopfir';
                     app.bsPassBand1 = app.PassbandFrequencyEditField.Value;
                     app.bsStopBand1 = app.StopbandFrequencyEditField.Value;
                     app.bsStopBand2 = app.StopbandFrequency2EditField.Value;
                     app.bsPassBand2 = app.PassbandFrequency2EditField.Value;
                    
-                    % 建立濾波器
                     app.filter = designfilt(customFilter, ...
-                            PassbandFrequency1 = app.bsPassBand1, ...
-                            StopbandFrequency1 = app.bsStopBand1, ...
-                            StopbandFrequency2 = app.bsStopBand2, ...
-                            PassbandFrequency2 = app.bsPassBand2, ...
-                            SampleRate = app.fsCurrent);
+                                            PassbandFrequency1 = app.bsPassBand1, ...
+                                            StopbandFrequency1 = app.bsStopBand1, ...
+                                            StopbandFrequency2 = app.bsStopBand2, ...
+                                            PassbandFrequency2 = app.bsPassBand2, ...
+                                            SampleRate = app.fsCurrent);
             end
         end
         
-        % 檢查自訂濾波器的輸入數值
+
+        % Check input of custom filter
         function Check_input(app)
-            switch app.CustomfilterDropDown.Value
+            switch app.CustomFilterDropDown.Value
                 case 'Low-pass'
-                    % 檢查大小是否正確(PassBand < StopBand)
+                    % Correct: PassBand < StopBand
                     if app.StopbandFrequencyEditField.Value <= app.PassbandFrequencyEditField.Value
                         app.StopbandFrequencyEditField.Value = app.PassbandFrequencyEditField.Value + 1000;
                         uialert(app.UIFigure, '輸入值大小順序錯誤，已自動調整', 'Warning', 'Icon', 'warning');
                     end
                 case 'High-pass'
-                    % 檢查大小是否正確(StopBand < PassBand)
+                    % Correct: PassBand > StopBand
                     if app.StopbandFrequencyEditField.Value >= app.PassbandFrequencyEditField.Value
                         app.PassbandFrequencyEditField.Value = app.StopbandFrequencyEditField.Value + 1000;
                         uialert(app.UIFigure, '輸入值大小順序錯誤，已自動調整', 'Warning', 'Icon', 'warning');
                     end
                 case 'Band-pass'
-                    % 檢查是否遞增(StopBand1 < PassBand1 < PassBand2 < StopBand2)
+                    % Correct: StopBand1 < PassBand1 < PassBand2 < StopBand2
                     if ~(app.StopbandFrequencyEditField.Value < app.PassbandFrequencyEditField.Value && ...
                          app.PassbandFrequencyEditField.Value < app.PassbandFrequency2EditField.Value && ...
                          app.PassbandFrequency2EditField.Value < app.StopbandFrequency2EditField.Value)
@@ -600,31 +615,27 @@ classdef Audio_analysis_tool < matlab.apps.AppBase
                         uialert(app.UIFigure, '輸入值大小順序錯誤，已自動排序', 'Warning', 'Icon', 'warning');
                     end
 
-                    % 檢查transition寬度
+                    % Check the width of transition
                     if app.PassbandFrequencyEditField.Value - app.StopbandFrequencyEditField.Value < app.minTransition
                         app.PassbandFrequencyEditField.Value = app.StopbandFrequencyEditField.Value + app.minTransition;
                         uialert(app.UIFigure, 'Passband1與Stopband1間距過小，已自動調整', 'Warning', 'Icon', 'warning');
                     end
-
                     if app.StopbandFrequency2EditField.Value - app.PassbandFrequency2EditField.Value < app.minTransition
                         app.StopbandFrequency2EditField.Value = app.PassbandFrequency2EditField.Value + app.minTransition;
                         uialert(app.UIFigure, 'Stopband2與Passband2間距過小，已自動調整', 'Warning', 'Icon', 'warning');
                     end
 
-                    % 檢查PassBand寬度
+                    % Check the width of PassBand
                     if app.PassbandFrequency2EditField.Value - app.PassbandFrequencyEditField.Value < app.minPassBandWidth
                         app.PassbandFrequency2EditField.Value = app.PassbandFrequencyEditField.Value + app.minPassBandWidth;
-                        
-                        % 確定沒有超過StopBand2
+                        % Can not bigger than StopBand2 (after auto fix)
                         if app.PassbandFrequency2EditField.Value >= app.StopbandFrequency2EditField.Value
                             app.StopbandFrequency2EditField.Value = app.PassbandFrequency2EditField.Value + app.minTransition;
                         end
-                    
                         uialert(app.UIFigure, '通帶寬度不足，已自動調整', 'Warning', 'Icon', 'warning');
                     end
                 case 'Band-stop'
-
-                    % 檢查是否遞增(PassBand1 < StopBand1 < StopBand2 < PassBand2)
+                    % Correct: PassBand1 < StopBand1 < StopBand2 < PassBand2
                     if ~(app.PassbandFrequencyEditField.Value < app.StopbandFrequencyEditField.Value && ...
                          app.StopbandFrequencyEditField.Value < app.StopbandFrequency2EditField.Value && ...
                          app.StopbandFrequency2EditField.Value < app.PassbandFrequency2EditField.Value)
@@ -642,91 +653,89 @@ classdef Audio_analysis_tool < matlab.apps.AppBase
                         uialert(app.UIFigure, '輸入值大小順序錯誤，已自動排序', 'Warning', 'Icon', 'warning');
                     end
 
-                    % 檢查transition寬度
+                    % Check the width of transition
                     if app.StopbandFrequencyEditField.Value - app.PassbandFrequencyEditField.Value < app.minTransition
                         app.StopbandFrequencyEditField.Value = app.PassbandFrequencyEditField.Value + app.minTransition;
                         uialert(app.UIFigure, 'Stopband1與Passband1間距過小，已自動調整', 'Warning', 'Icon', 'warning');
                     end
-
                     if app.PassbandFrequency2EditField.Value - app.StopbandFrequency2EditField.Value < app.minTransition
                         app.PassbandFrequency2EditField.Value = app.StopbandFrequency2EditField.Value + app.minTransition;
                         uialert(app.UIFigure, 'Passband2與Stopband2間距過小，已自動調整', 'Warning', 'Icon', 'warning');
                     end
 
-                    % 檢查StopBand寬度
+                    % Check the width of StopBand
                     if app.StopbandFrequency2EditField.Value - app.StopbandFrequencyEditField.Value < app.minStopBandWidth
                         app.StopbandFrequency2EditField.Value = app.StopbandFrequencyEditField.Value + app.minStopBandWidth;
-
-                        % 確定沒有超過PassBand2
+                        % Can not bigger than PassBand2 (after auto fix)
                         if app.StopbandFrequency2EditField.Value >= app.PassbandFrequency2EditField.Value
                             app.PassbandFrequency2EditField.Value = app.StopbandFrequency2EditField.Value + app.minTransition;
                         end
-
                         uialert(app.UIFigure, 'Stopband 寬度不足，已自動調整', 'Warning', 'Icon', 'warning');
                     end
-            end 
+            end
         end
         
-        % 動態更新標題
+
+        % Update title of plot
         function Update_title(app)
-            % 取得圖表類型
+            % Get manipulated information
             graph = app.GraphButtonGroup.SelectedObject.Text;
             
-            % 取得音量
             if app.VolumeSlider.Value == 1
                 volume = "";
             else
                 volume = "| Vol: " + num2str(app.VolumeSlider.Value) + "x";
             end
 
-            % 取得速度
             if app.SpeedSlider.Value == 1
                 speed = "";
             else
                 speed = "| Spd: " + num2str(app.SpeedSlider.Value) + "x";
             end
 
-            % 取得濾波器種類
             filterStr = "| Filter: [ " + app.FiltersFIRDropDown.Value + " ]";
 
-            % 組合成標題
+            % Combine them into a string (title)
             title = sprintf("[ %s ] – [ %s ] %s %s %s", app.fileName, graph, volume, speed, filterStr);
     
             app.UIAxes.Title.Interpreter = "none";
             app.UIAxes.Title.String = title;
         end
         
-        % 外觀主題
+
+        % Change to dark mode or light mode
         function Change_theme(app)
             isDark = strcmp(app.DarkmodeSwitch.Value, 'On');
     
-            % 設定顏色
-            if isDark
-                bgColor = [0.15 0.15 0.15];
-                fgColor = [1 1 1];
-                gridColor = [0.7 0.7 0.7];
-                app.lineColor1 = [0 1 1];
-                app.lineColor2 = [0.5 0.7 1];
-                figureColor = [0.3 0.3 0.3];
-                btnColor = [0.51 0.51 0.51];
-            else
+            % Set color
+            if isDark % Dark mode
+                bgColor = [0.15 0.15 0.15];     % Background
+                fgColor = [1 1 1];              % Foreground (text)
+                gridColor = [0.7 0.7 0.7];      % Grid
+                app.lineColor1 = [0 1 1];       % Waveform
+                app.lineColor2 = [0.5 0.7 1];   % Spectrum
+                app.progressColor = [0.16, 1, 0.16];    % Playing progress line
+                figureColor = [0.3 0.3 0.3];    % Figure background    
+                btnColor = [0.51 0.51 0.51];    % Button background
+            else % light mode
                 bgColor = [1 1 1];           
                 fgColor = [0 0 0];           
                 gridColor = [0.6 0.6 0.6];   
                 app.lineColor1 = [0.01 0.4 0.7];
                 app.lineColor2 = [0.5 0.2 0.6];
+                app.progressColor = [0, 0.7, 0];
                 figureColor = [0.94,0.94,0.94];
                 btnColor = [0.49 0.49 0.49];
             end
 
-            % 重新繪圖
+            % Reset-plot the graph
             app.Plot_graph();
 
-            % 套用顏色
-            % 背景
+            % Apply color to widgets
+            % Background
             app.UIFigure.Color = figureColor;
             
-            % 表格
+            % UIAxes
             app.UIAxes.Color = bgColor;
             app.UIAxes.XColor = fgColor;
             app.UIAxes.YColor = fgColor;
@@ -735,7 +744,7 @@ classdef Audio_analysis_tool < matlab.apps.AppBase
             app.UIAxes.XLabel.Color = fgColor;
             app.UIAxes.YLabel.Color = fgColor;
             
-            % 圖表選項
+            % Graph radio button group
             app.GraphButtonGroup.ForegroundColor = fgColor;
             app.GraphButtonGroup.BackgroundColor = figureColor;
             app.GraphButtonGroup.BorderColor = btnColor;
@@ -743,98 +752,127 @@ classdef Audio_analysis_tool < matlab.apps.AppBase
             app.SpectrumButton.FontColor = fgColor;
             app.SpectrogramButton.FontColor = fgColor;
 
-            % 濾波器選項
+            % Filter drop down
             app.FiltersFIRDropDown.FontColor = fgColor;
             app.FiltersFIRDropDown.BackgroundColor = figureColor;
             app.Label.FontColor = fgColor;
             app.Label.BackgroundColor = figureColor;
             
-            % 自訂濾波器選項
-            app.CustomfilterDropDown.FontColor = fgColor;
-            app.CustomfilterDropDown.BackgroundColor = figureColor;
-            app.CustomfilterDropDownLabel.FontColor = fgColor;
-            app.CustomfilterDropDownLabel.BackgroundColor = figureColor;
+            % Custom filter drop down
+            app.CustomFilterDropDown.FontColor = fgColor;
+            app.CustomFilterDropDown.BackgroundColor = figureColor;
+            app.CustomFilterDropDownLabel.FontColor = fgColor;
+            app.CustomFilterDropDownLabel.BackgroundColor = figureColor;
 
-            % 套用按鈕
+            % Apply button
             app.ApplyButton.FontColor = fgColor;
             app.ApplyButton.BackgroundColor = figureColor;
 
-            % 音量拉桿
+            % Volume slider
             app.VolumeSlider.FontColor = fgColor;
             app.VolumeSlider_2Label.FontColor = fgColor;
             app.VolumeSlider_2Label.BackgroundColor = figureColor;
 
-            % 速度拉桿
+            % Speed slider
             app.SpeedSlider.FontColor = fgColor;
             app.SpeedSliderLabel.FontColor = fgColor;
             app.SpeedSliderLabel.BackgroundColor = figureColor;
 
-            % 最大震幅
+            % Audio information display edit fields
             app.MaxAmplitudeEditField.FontColor = fgColor;
             app.MaxAmplitudeEditField.BackgroundColor = figureColor;
             app.MaxAmplitudeEditFieldLabel.FontColor = fgColor;
             app.MaxAmplitudeEditFieldLabel.BackgroundColor = figureColor;
 
-            % 採樣率
             app.SampleRateEditField.FontColor = fgColor;
             app.SampleRateEditField.BackgroundColor = figureColor;
-            app.SampleRateEditFieldLabel.FontColor = fgColor;
-            app.SampleRateEditFieldLabel.BackgroundColor = figureColor;
+            app.SampleRateLabel.FontColor = fgColor;
+            app.SampleRateLabel.BackgroundColor = figureColor;
 
-            % 時間
             app.TimesEditField.FontColor = fgColor;
             app.TimesEditField.BackgroundColor = figureColor;
             app.TimesEditFieldLabel.FontColor = fgColor;
             app.TimesEditFieldLabel.BackgroundColor = figureColor;
 
-            % 播放狀態
+            % Playing statement
             app.Label_5.FontColor = fgColor;
             app.Label_5.BackgroundColor = figureColor;
             
-            % 播放按鈕
+            % Buttons
             app.PlayButton.FontColor = fgColor;
             app.PlayButton.BackgroundColor = figureColor;
 
-            % 讀取按鈕
             app.LoadButton.FontColor = fgColor;
             app.LoadButton.BackgroundColor = figureColor;
 
-            % 錄音按鈕
             app.RecordButton.FontColor = fgColor;
             app.RecordButton.BackgroundColor = figureColor;
 
-            % 儲存按鈕
             app.SaveButton.FontColor = fgColor;
             app.SaveButton.BackgroundColor = figureColor;
 
+            % Filter information display edit fields
             % Passband1
             app.PassbandFrequencyEditField.FontColor = fgColor;
             app.PassbandFrequencyEditField.BackgroundColor = figureColor;
-            app.PassbandFrequencyEditFieldLabel.FontColor = fgColor;
-            app.PassbandFrequencyEditFieldLabel.BackgroundColor = figureColor;
+            app.PassbandFrequencyLabel.FontColor = fgColor;
+            app.PassbandFrequencyLabel.BackgroundColor = figureColor;
 
             % Passband2
             app.PassbandFrequency2EditField.FontColor = fgColor;
             app.PassbandFrequency2EditField.BackgroundColor = figureColor;
-            app.PassbandFrequency2EditFieldLabel.FontColor = fgColor;
-            app.PassbandFrequency2EditFieldLabel.BackgroundColor = figureColor;
+            app.PassbandFrequency2Label.FontColor = fgColor;
+            app.PassbandFrequency2Label.BackgroundColor = figureColor;
 
             % Stopband1
             app.StopbandFrequencyEditField.FontColor = fgColor;
             app.StopbandFrequencyEditField.BackgroundColor = figureColor;
-            app.StopbandFrequencyEditFieldLabel.FontColor = fgColor;
-            app.StopbandFrequencyEditFieldLabel.BackgroundColor = figureColor;
+            app.StopbandFrequencyLabel.FontColor = fgColor;
+            app.StopbandFrequencyLabel.BackgroundColor = figureColor;
 
             % Stopband2
             app.StopbandFrequency2EditField.FontColor = fgColor;
             app.StopbandFrequency2EditField.BackgroundColor = figureColor;
-            app.StopbandFrequency2EditField_2Label.FontColor = fgColor;
-            app.StopbandFrequency2EditField_2Label.BackgroundColor = figureColor;
+            app.StopbandFrequency2Label.FontColor = fgColor;
+            app.StopbandFrequency2Label.BackgroundColor = figureColor;
 
-            % 切換按鈕
+            % Light switch
             app.DarkmodeSwitch.FontColor = fgColor;
             app.DarkmodeSwitchLabel.FontColor = fgColor;
             app.DarkmodeSwitchLabel.BackgroundColor = figureColor;
+        end
+
+
+        % Show playing progress line
+        function Update_playing_progress(app)
+            % fprintf("current time: " + app.currentTime + "\n");
+            
+            % Manually adjust the time error
+            app.currentTime = app.currentTime + 0.072;
+            app.progressLine.Value = app.currentTime;
+
+            % Play to the end
+            if app.currentTime >= app.duration
+                app.Stop_playing_audio();
+            end
+        end
+        
+        % Stop playing audio
+        function Stop_playing_audio(app)
+            % Stop player and timer
+            if app.playStatement
+                stop(app.player);
+                if app.WaveformButton.Value
+                    stop(app.playingTimer);
+                    delete(app.playingTimer);
+                end
+            end
+
+            % Reset ui and plot
+            app.PlayButton.Text = 'Play';
+            app.PlaystatementLamp.Color = 'red';
+            app.playStatement = false;
+            app.Plot_graph();
         end
     end
 
@@ -843,50 +881,44 @@ classdef Audio_analysis_tool < matlab.apps.AppBase
 
         % Code that executes after component creation
         function startupFcn(app)
-            % 設定主題
+            % Initialize the theme
             app.Change_theme();
-            % 初見提示
+
+            % Starting info
             uialert(app.UIFigure, '請先讀取或錄製音訊資料', 'Welcome', 'Icon', 'info');
         end
 
         % Button pushed function: LoadButton
         function LoadButtonPushed(app, event)
-            % 選取檔案
+            % Select audio file (.wav)
             [fileNameToRead, filePath] = uigetfile({'*.wav', 'wav file (*.wav)'}, 'Selecting file');
             
-            % 使用者按取消
-            if isequal(fileNameToRead, 0)
-                uialert(app.UIFigure, '未選取檔案', 'Warning', 'Icon', 'warning');
+            if isequal(fileNameToRead, 0) % Cancel
+                return;
             else
-                % 提示成功讀取
+                % Success loading file
                 uialert(app.UIFigure, '讀取成功！', 'Success', 'Icon', 'success');
                 
-                % 讀取檔案
+                % Load the audio file
                 fullPath = [filePath, fileNameToRead];
                 [app.yOriginal, app.fsOriginal] = audioread(fullPath);
                 app.yCurrent = app.yOriginal;
                 app.fsCurrent = app.fsOriginal;
 
-                % 儲存資訊
+                % Get information
                 app.fileName = erase(fileNameToRead, '.wav');
                 audioInfo = audioinfo(fullPath);
                 app.channel = audioInfo.NumChannels;
                 app.duration = audioInfo.Duration;
                 app.maxAmp = max(abs(app.yCurrent), [], 'all');
 
-                % 防止音訊太大爆音
-                %if max(abs(app.yOriginal)) > 0.9
-                %    warning('音訊振幅過大，可能會失真');
-                %    app.yOriginal = app.yOriginal * 0.9 / max(abs(app.yOriginal));
-                %end
-
-                % 重製物件
+                % Reset ui
                 app.Reset_UI();
 
-                % 顯示參數
+                % Show information
                 app.Show_info();
 
-                % 繪製圖形
+                % Plot graph
                 app.Plot_graph();
                 app.Update_title();
             end
@@ -894,152 +926,159 @@ classdef Audio_analysis_tool < matlab.apps.AppBase
 
         % Selection changed function: GraphButtonGroup
         function GraphButtonGroupSelectionChanged(app, event)
-            % 還沒讀資料不能用
+            % Cannot used before the file is loaded
             if ~app.Nload_first_data()
                 app.GraphButtonGroup.SelectedObject = app.WaveformButton;
                 return;
             end
+
+            % Stop playing
+            app.Stop_playing_audio();
             
-            % 重新繪圖
+            % Re-plot graph
             app.Plot_graph();
             app.Update_title();
         end
 
         % Button pushed function: PlayButton
         function PlayButtonPushed(app, event)
-            % 還沒讀資料不能用
             if ~app.Nload_first_data()
                 return;
             end
             
-            % 如果想要播放(按按鈕 + 目前沒播)
-            if ~app.playStatement
-                % 改變按鈕的字(先改，確定不是當機)
-                app.PlayButton.Text = 'Stop';
-
-                % 播放音訊
-                app.player = audioplayer(app.yCurrent, app.fsCurrent);
-                play(app.player);
-                
-                % 開始播放之後再改Lamp和播放狀態
-                app.PlaystatementLamp.Color = 'green';
+            if ~app.playStatement % Want to play
                 app.playStatement = true;
-            else
-                % 停止播放比照辦理
-                app.PlayButton.Text = 'Play';
+
+                % Prepare to create audio player
+                app.PlayButton.Text = 'Preparing...';
+                app.PlayButton.Enable = "off";
+                app.player = audioplayer(app.yCurrent, app.fsCurrent);
+
+                % If using waveform (need to show playing progress)
+                if app.playStatement && app.WaveformButton.Value
+                    % Set up timer
+                    app.playingTimer = timer;
+                    app.playingTimer.Period = 0.05;
+                    app.playingTimer.ExecutionMode = 'fixedSpacing';
+                    app.playingTimer.TimerFcn = @(~,~) app.Update_playing_progress();
+
+                    % Initialize playing progress line
+                    app.progressLine = xline(app.UIAxes, 0, 'Color', app.progressColor, ...
+                                                            'LineWidth', 2);
+                    app.currentTime = 0;
+                end
                 
-                % 停止播放
-                stop(app.player);
+                play(app.player);
+
+                % Change text of button and status of lamp
+                app.PlayButton.Text = 'Stop';
+                app.PlayButton.Enable = "on";
+                app.PlaystatementLamp.Color = 'green';
                 
-                app.PlaystatementLamp.Color = 'red';
+                % Start timer
+                if app.playStatement && app.WaveformButton.Value
+                    start(app.playingTimer);
+                end
+            else % Want to stop
                 app.playStatement = false;
+
+                % Stop player and timer
+                stop(app.player);
+                if app.playStatement && app.WaveformButton.Value
+                    stop(app.playingTimer);
+                    delete(app.playingTimer);
+                end
+                
+                % Change text of button and status of lamp
+                app.PlayButton.Text = 'Play';
+                app.PlaystatementLamp.Color = 'red';
             end
+
         end
 
         % Close request function: UIFigure
         function UIFigureCloseRequest(app, event)
-            % 如果正在播放
-            if app.playStatement
-                try
-                    % 先停止
-                    stop(app.player);
-                catch
-                    
-                end
-            end
-        % 再關畫面
-        delete(app.UIFigure);
+            % Stop playing
+            app.Stop_playing_audio();
+        
+            % Close app
+            delete(app.UIFigure);
         end
 
         % Value changed function: VolumeSlider
         function VolumeSliderValueChanged(app, event)
-            % 還沒讀資料不能用
             if ~app.Nload_first_data()
                 app.VolumeSlider.Value = 1;
                 return;
             end
             
-            % 更新音訊資料
             app.Update_audio();
 
-            % 顯示參數
             app.Show_info();
-
-            % 重新繪圖
             app.Plot_graph();
             app.Update_title();
         end
 
         % Value changed function: SpeedSlider
         function SpeedSliderValueChanged(app, event)
-            % 還沒讀資料不能用
             if ~app.Nload_first_data()
                 app.SpeedSlider.Value = 1;
                 return;
             end
 
-            % 不能為0
+            % Sample rate can not be 0
             if app.SpeedSlider.Value <= 0
                 app.SpeedSlider.Value = 0.1;
             end
             
-            % 更新音訊資料
             app.Update_audio();
 
-            % 顯示參數
             app.Show_info();
-
-            % 重新繪圖
             app.Plot_graph();
             app.Update_title();
         end
 
         % Button pushed function: RecordButton
         function RecordButtonPushed(app, event)
-            % 如果想要錄音(按按鈕 + 目前沒在錄)
-            if ~app.recordStatement
+            if ~app.recordStatement % Want to record
+                % Default record parameters
                 fs = 44100;
                 bits = 16;
                 channels = 1;
                 
-                % 開始錄音
+                % Start to record
                 uialert(app.UIFigure, '開始錄音...', 'Recording', 'Icon', 'info');
                 app.recorder = audiorecorder(fs, bits, channels);
                 record(app.recorder);
 
                 app.recordStatement = true;
                 app.RecordButton.Text = 'Stop';
-            else
-                % 停止錄音
+            else % Want to stop
+                % Stop recording
                 stop(app.recorder);
-
-                % 提示錄製成功
                 uialert(app.UIFigure, '錄製成功！', 'Success', 'Icon', 'success');
                 
-                % 儲存結果
+                % Save the result
                 yRecorded = getaudiodata(app.recorder);
                 app.yOriginal = yRecorded;
                 app.yCurrent = app.yOriginal;
                 app.fsOriginal = app.recorder.SampleRate;
                 app.fsCurrent = app.fsOriginal;
 
-                % 儲存資訊
+                % Get information
                 app.duration = length(app.yOriginal) / app.fsOriginal;
                 app.channel = app.recorder.NumChannels;
                 app.maxAmp = max(abs(app.yCurrent), [], 'all');
                 app.fileName = "User Recorded";
                 
-                % 重製錄製狀態
+                % Reset status
                 app.recordStatement = false;
                 app.RecordButton.Text = 'Record';
 
-                % 重製物件
+                % Plot initialize graph
                 app.Reset_UI();
 
-                % 顯示參數
                 app.Show_info();
-
-                % 繪製圖形
                 app.Plot_graph();
                 app.Update_title();
             end
@@ -1047,36 +1086,32 @@ classdef Audio_analysis_tool < matlab.apps.AppBase
 
         % Button pushed function: SaveButton
         function SaveButtonPushed(app, event)
-            % 還沒讀資料不能用
             if ~app.Nload_first_data()
                 return;
             end
 
-            % 選擇路徑
+            % Choose saving path
             [saveFileName, filePath] = uiputfile('*.wav', '儲存音訊檔案');
             
-            % 處理未選擇路徑的事件
+            % Save the audio file
             if isequal(saveFileName, 0)
-                uialert(app.UIFigure, '未儲存檔案', 'Warning', 'Icon', 'warning');
+                return;
             else
-                % 儲存檔案
                 fullPath = fullfile(filePath, saveFileName);
                 audiowrite(fullPath, app.yCurrent, round(app.fsCurrent));
 
-                % 提示成功儲存
                 uialert(app.UIFigure, '儲存成功！', 'Success', 'Icon', 'success');
             end
         end
 
         % Value changed function: FiltersFIRDropDown
         function FiltersFIRDropDownValueChanged(app, event)
-            % 還沒讀資料不能用
             if ~app.Nload_first_data()
                 app.FiltersFIRDropDown.Value = 'None';
                 return;
             end
             
-            % 切到Custom時初始化底下4個值
+            % Initialize the value inside edit field when switch to custom filter
             if isequal(app.FiltersFIRDropDown.Value, 'Custom')
                 app.Show_info();
                 app.PassbandFrequencyEditField.Value = 3000;
@@ -1085,39 +1120,32 @@ classdef Audio_analysis_tool < matlab.apps.AppBase
                 app.StopbandFrequency2EditField.Value = 8000;
             end
 
-            % 更新音訊資料
             app.Update_audio();
 
-            % 顯示參數
             app.Show_info();
-
-            % 重新繪圖
             app.Plot_graph();
             app.Update_title();
         end
 
         % Button pushed function: ApplyButton
         function ApplyButtonPushed(app, event)
-            % 更新音訊資料
+            % Apply custom filter
             app.Update_audio();
 
-            % 顯示參數
             app.Show_info();
-
-            % 重新繪圖
             app.Plot_graph();
             app.Update_title();
         end
 
-        % Value changed function: CustomfilterDropDown
-        function CustomfilterDropDownValueChanged(app, event)
-            % 根據選的濾波器判斷要不要顯示底下兩個Edit field
+        % Value changed function: CustomFilterDropDown
+        function CustomFilterDropDownValueChanged(app, event)
+            % Determine whether to display the two edit fields below based on the selected filter
             app.Show_info();
         end
 
         % Value changed function: DarkmodeSwitch
         function DarkmodeSwitchValueChanged(app, event)
-            % 更改主題
+            % Change theme
             app.Change_theme();           
         end
     end
@@ -1241,12 +1269,12 @@ classdef Audio_analysis_tool < matlab.apps.AppBase
             app.RecordButton.Position = [432 108 100 23];
             app.RecordButton.Text = 'Record';
 
-            % Create PassbandFrequencyEditFieldLabel
-            app.PassbandFrequencyEditFieldLabel = uilabel(app.UIFigure);
-            app.PassbandFrequencyEditFieldLabel.HorizontalAlignment = 'right';
-            app.PassbandFrequencyEditFieldLabel.Visible = 'off';
-            app.PassbandFrequencyEditFieldLabel.Position = [48 63 115 22];
-            app.PassbandFrequencyEditFieldLabel.Text = 'PassbandFrequency';
+            % Create PassbandFrequencyLabel
+            app.PassbandFrequencyLabel = uilabel(app.UIFigure);
+            app.PassbandFrequencyLabel.HorizontalAlignment = 'right';
+            app.PassbandFrequencyLabel.Visible = 'off';
+            app.PassbandFrequencyLabel.Position = [45 63 118 22];
+            app.PassbandFrequencyLabel.Text = 'Passband Frequency';
 
             % Create PassbandFrequencyEditField
             app.PassbandFrequencyEditField = uieditfield(app.UIFigure, 'numeric');
@@ -1255,12 +1283,12 @@ classdef Audio_analysis_tool < matlab.apps.AppBase
             app.PassbandFrequencyEditField.Position = [185 63 81 22];
             app.PassbandFrequencyEditField.Value = 3000;
 
-            % Create StopbandFrequencyEditFieldLabel
-            app.StopbandFrequencyEditFieldLabel = uilabel(app.UIFigure);
-            app.StopbandFrequencyEditFieldLabel.HorizontalAlignment = 'right';
-            app.StopbandFrequencyEditFieldLabel.Visible = 'off';
-            app.StopbandFrequencyEditFieldLabel.Position = [433 63 113 22];
-            app.StopbandFrequencyEditFieldLabel.Text = 'StopbandFrequency';
+            % Create StopbandFrequencyLabel
+            app.StopbandFrequencyLabel = uilabel(app.UIFigure);
+            app.StopbandFrequencyLabel.HorizontalAlignment = 'right';
+            app.StopbandFrequencyLabel.Visible = 'off';
+            app.StopbandFrequencyLabel.Position = [430 63 116 22];
+            app.StopbandFrequencyLabel.Text = 'Stopband Frequency';
 
             % Create StopbandFrequencyEditField
             app.StopbandFrequencyEditField = uieditfield(app.UIFigure, 'numeric');
@@ -1269,12 +1297,12 @@ classdef Audio_analysis_tool < matlab.apps.AppBase
             app.StopbandFrequencyEditField.Position = [568 63 81 22];
             app.StopbandFrequencyEditField.Value = 5000;
 
-            % Create PassbandFrequency2EditFieldLabel
-            app.PassbandFrequency2EditFieldLabel = uilabel(app.UIFigure);
-            app.PassbandFrequency2EditFieldLabel.HorizontalAlignment = 'right';
-            app.PassbandFrequency2EditFieldLabel.Visible = 'off';
-            app.PassbandFrequency2EditFieldLabel.Position = [48 21 122 22];
-            app.PassbandFrequency2EditFieldLabel.Text = 'PassbandFrequency2';
+            % Create PassbandFrequency2Label
+            app.PassbandFrequency2Label = uilabel(app.UIFigure);
+            app.PassbandFrequency2Label.HorizontalAlignment = 'right';
+            app.PassbandFrequency2Label.Visible = 'off';
+            app.PassbandFrequency2Label.Position = [45 21 125 22];
+            app.PassbandFrequency2Label.Text = 'Passband Frequency2';
 
             % Create PassbandFrequency2EditField
             app.PassbandFrequency2EditField = uieditfield(app.UIFigure, 'numeric');
@@ -1283,12 +1311,12 @@ classdef Audio_analysis_tool < matlab.apps.AppBase
             app.PassbandFrequency2EditField.Position = [185 21 81 22];
             app.PassbandFrequency2EditField.Value = 6000;
 
-            % Create StopbandFrequency2EditField_2Label
-            app.StopbandFrequency2EditField_2Label = uilabel(app.UIFigure);
-            app.StopbandFrequency2EditField_2Label.HorizontalAlignment = 'right';
-            app.StopbandFrequency2EditField_2Label.Visible = 'off';
-            app.StopbandFrequency2EditField_2Label.Position = [433 21 120 22];
-            app.StopbandFrequency2EditField_2Label.Text = 'StopbandFrequency2';
+            % Create StopbandFrequency2Label
+            app.StopbandFrequency2Label = uilabel(app.UIFigure);
+            app.StopbandFrequency2Label.HorizontalAlignment = 'right';
+            app.StopbandFrequency2Label.Visible = 'off';
+            app.StopbandFrequency2Label.Position = [430 21 123 22];
+            app.StopbandFrequency2Label.Text = 'Stopband Frequency2';
 
             % Create StopbandFrequency2EditField
             app.StopbandFrequency2EditField = uieditfield(app.UIFigure, 'numeric');
@@ -1297,11 +1325,11 @@ classdef Audio_analysis_tool < matlab.apps.AppBase
             app.StopbandFrequency2EditField.Position = [568 21 81 22];
             app.StopbandFrequency2EditField.Value = 8000;
 
-            % Create SampleRateEditFieldLabel
-            app.SampleRateEditFieldLabel = uilabel(app.UIFigure);
-            app.SampleRateEditFieldLabel.HorizontalAlignment = 'right';
-            app.SampleRateEditFieldLabel.Position = [255 154 71 22];
-            app.SampleRateEditFieldLabel.Text = 'SampleRate';
+            % Create SampleRateLabel
+            app.SampleRateLabel = uilabel(app.UIFigure);
+            app.SampleRateLabel.HorizontalAlignment = 'right';
+            app.SampleRateLabel.Position = [252 154 74 22];
+            app.SampleRateLabel.Text = 'Sample Rate';
 
             % Create SampleRateEditField
             app.SampleRateEditField = uieditfield(app.UIFigure, 'numeric');
@@ -1330,20 +1358,20 @@ classdef Audio_analysis_tool < matlab.apps.AppBase
             app.TimesEditField.Editable = 'off';
             app.TimesEditField.Position = [591 154 55 22];
 
-            % Create CustomfilterDropDownLabel
-            app.CustomfilterDropDownLabel = uilabel(app.UIFigure);
-            app.CustomfilterDropDownLabel.HorizontalAlignment = 'right';
-            app.CustomfilterDropDownLabel.Visible = 'off';
-            app.CustomfilterDropDownLabel.Position = [191 219 72 22];
-            app.CustomfilterDropDownLabel.Text = 'Custom filter';
+            % Create CustomFilterDropDownLabel
+            app.CustomFilterDropDownLabel = uilabel(app.UIFigure);
+            app.CustomFilterDropDownLabel.HorizontalAlignment = 'right';
+            app.CustomFilterDropDownLabel.Visible = 'off';
+            app.CustomFilterDropDownLabel.Position = [187 219 76 22];
+            app.CustomFilterDropDownLabel.Text = 'Custom Filter';
 
-            % Create CustomfilterDropDown
-            app.CustomfilterDropDown = uidropdown(app.UIFigure);
-            app.CustomfilterDropDown.Items = {'Low-pass', 'High-pass', 'Band-pass', 'Band-stop'};
-            app.CustomfilterDropDown.ValueChangedFcn = createCallbackFcn(app, @CustomfilterDropDownValueChanged, true);
-            app.CustomfilterDropDown.Visible = 'off';
-            app.CustomfilterDropDown.Position = [278 219 147 22];
-            app.CustomfilterDropDown.Value = 'Low-pass';
+            % Create CustomFilterDropDown
+            app.CustomFilterDropDown = uidropdown(app.UIFigure);
+            app.CustomFilterDropDown.Items = {'Low-pass', 'High-pass', 'Band-pass', 'Band-stop'};
+            app.CustomFilterDropDown.ValueChangedFcn = createCallbackFcn(app, @CustomFilterDropDownValueChanged, true);
+            app.CustomFilterDropDown.Visible = 'off';
+            app.CustomFilterDropDown.Position = [278 219 147 22];
+            app.CustomFilterDropDown.Value = 'Low-pass';
 
             % Create ApplyButton
             app.ApplyButton = uibutton(app.UIFigure, 'push');
