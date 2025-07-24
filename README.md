@@ -31,9 +31,11 @@ Audio_filter/
 │   ├── Version_1/
 │   │   ├── Audio_filter_v1.mlapp     # v1，改成mlapp的主程式
 │   │   └── Audio_filter_v1_code.m    # v1，展示程式碼用的.m檔
-│   └── Version_2/
-│       ├── Audio_filter_v2.mlapp     # v2，mlapp的主程式    
-│       └── Audio_filter_v2_code.m    # v2，展示程式碼用的.m檔
+├── Version_2/
+│   │   ├── Audio_filter_v2.mlapp     # v2，mlapp的主程式
+│   │   └── Audio_filter_v2_code.m    # v2，展示程式碼用的.m檔
+│   └── Version_3/
+│       ├── Audio_filter_v2.mlapp     # v3，mlapp的主程式
 ├── Program/
 │   ├── Audio_filter_v.mlapp      # v3，最終版本mlapp主程式
 │   └── Audio_filter_v3_code.m    # v3，展示程式碼用的.m檔
@@ -59,7 +61,7 @@ Audio_filter/
 
 ## 2. 使用說明
 
-1. 使用MATLAB開啟Audio_filter.mlapp並執行App（或啟動MyAppInstaller_web安裝app）
+1. 使用MATLAB開啟Audio_filter.mlapp並執行App
 2. 載入或錄製音訊（未載入音訊就使用其他功能會顯示警告提示）
 3. 進行音訊分析與編輯
 4. 匯出編輯後的音訊並儲存
@@ -73,7 +75,7 @@ Audio_filter/
 |**圖表切換**|波形圖、頻譜圖、時頻譜，動態標題|
 |**濾波功能**|包含內建的低通、高通、帶通、帶阻濾波器及自訂濾波器（含輸入防呆）|
 |**音訊編輯**|使用拉桿調整音訊的音量、速度|
-|**播放控制**|播放編輯後的音訊，附播放狀態指示燈|
+|**播放控制**|播放編輯後的音訊，附播放狀態指示燈和播放進度指示線|
 |**音訊管理**|可讀取音訊（`.wav`檔）、錄製音訊、儲存編輯後的音訊|
 |**顏色主題**|Dark mode / Light mode主題切換，保護眼睛|
 
@@ -114,7 +116,7 @@ Audio_filter/
 |延伸項目|說明|
 |----------|---------------------------------------------|
 |**段落選取**|讓使用者選取音訊的其中某部分進行編輯、操作|
-|**撥放進度**|播放時間顯示、進度條|
+|**播放進度（已完成）**|播放時間顯示、進度條|
 |**暫停功能**|新增暫停功能，不用每次都從頭播|
 |**編輯前後比較**|新增一個圖表來比較編輯前後的音訊|
 |**儲存自訂參數**|讓使用者可記憶上次使用的自訂濾波器參數|
