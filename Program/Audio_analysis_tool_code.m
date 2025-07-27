@@ -68,7 +68,7 @@ classdef Audio_analysis_tool < matlab.apps.AppBase
         
 
         % Filter information
-        filter           digitalFilter    % Type of filter
+        filter                     % Filter
         lowPassBand      double    % Parameters of low-pass filter
         lowStopBand      double             
         highPassBand     double    % Parameters of high-pass filter
@@ -85,6 +85,8 @@ classdef Audio_analysis_tool < matlab.apps.AppBase
         minTransition    double = 1000     % Minimum transition (check input)
         minPassBandWidth double = 2000     % Minimum pass band
         minStopBandWidth double = 2000     % Minimum stop band
+        w                double    % Window of box filter
+        sigma            double    % Sigma value of Gaussian filter
 
 
         % Properties for display playing progress
@@ -175,6 +177,10 @@ classdef Audio_analysis_tool < matlab.apps.AppBase
                     app.StopbandFrequencyEditField.Value = app.bsStopBand1;
                     app.PassbandFrequency2EditField.Value = app.bsPassBand2;
                     app.StopbandFrequency2EditField.Value = app.bsStopBand2;
+                case 'Box'
+                    app.PassbandFrequencyEditField.Value = app.w;
+                case 'Gaussian'
+                    app.PassbandFrequencyEditField.Value = app.sigma;
             end
         end
         
@@ -182,6 +188,7 @@ classdef Audio_analysis_tool < matlab.apps.AppBase
         % Control the visibility and editability of ui widgets (Decide by chosen built-in filter)
         function Show_widget(app)
             if isequal(app.FiltersFIRDropDown.Value, 'Low-pass') || isequal(app.FiltersFIRDropDown.Value, 'High-pass') 
+                app.PassbandFrequencyLabel.Text = 'Passband Frequency';
                 app.PassbandFrequencyEditField.Visible = "on";
                 app.PassbandFrequencyLabel.Visible = "on";
                 app.PassbandFrequency2EditField.Editable = "off";
@@ -200,6 +207,7 @@ classdef Audio_analysis_tool < matlab.apps.AppBase
                 app.CustomFilterDropDownLabel.Visible = "off";
                 app.ApplyButton.Visible = "off";
             elseif isequal(app.FiltersFIRDropDown.Value, 'None')
+                app.PassbandFrequencyLabel.Text = 'Passband Frequency';
                 app.PassbandFrequencyEditField.Visible = "off";
                 app.PassbandFrequencyLabel.Visible = "off";
 
@@ -216,6 +224,7 @@ classdef Audio_analysis_tool < matlab.apps.AppBase
                 app.CustomFilterDropDownLabel.Visible = "off";
                 app.ApplyButton.Visible = "off";
             elseif isequal(app.FiltersFIRDropDown.Value, 'Band-pass') || isequal(app.FiltersFIRDropDown.Value, 'Band-stop')
+                app.PassbandFrequencyLabel.Text = 'Passband Frequency';
                 app.PassbandFrequencyEditField.Visible = "on";
                 app.PassbandFrequencyLabel.Visible = "on";
                 app.PassbandFrequencyEditField.Editable = "off";
@@ -230,6 +239,48 @@ classdef Audio_analysis_tool < matlab.apps.AppBase
 
                 app.StopbandFrequency2EditField.Visible = "on";
                 app.StopbandFrequency2Label.Visible = "on";
+                app.StopbandFrequency2EditField.Editable = "off";
+
+                app.CustomFilterDropDown.Visible = "off";
+                app.CustomFilterDropDownLabel.Visible = "off";
+                app.ApplyButton.Visible = "off";
+            elseif isequal(app.FiltersFIRDropDown.Value, 'Box')
+                app.PassbandFrequencyLabel.Text = 'W';
+                app.PassbandFrequencyEditField.Visible = "on";
+                app.PassbandFrequencyLabel.Visible = "on";
+                app.PassbandFrequencyEditField.Editable = "off";
+
+                app.StopbandFrequencyEditField.Visible = "off";
+                app.StopbandFrequencyLabel.Visible = "off";
+                app.StopbandFrequencyEditField.Editable = "off";
+
+                app.PassbandFrequency2EditField.Visible = "off";
+                app.PassbandFrequency2Label.Visible = "off";
+                app.PassbandFrequency2EditField.Editable = "off";
+
+                app.StopbandFrequency2EditField.Visible = "off";
+                app.StopbandFrequency2Label.Visible = "off";
+                app.StopbandFrequency2EditField.Editable = "off";
+
+                app.CustomFilterDropDown.Visible = "off";
+                app.CustomFilterDropDownLabel.Visible = "off";
+                app.ApplyButton.Visible = "off";
+            elseif isequal(app.FiltersFIRDropDown.Value, 'Gaussian')
+                app.PassbandFrequencyLabel.Text = 'Sigma';
+                app.PassbandFrequencyEditField.Visible = "on";
+                app.PassbandFrequencyLabel.Visible = "on";
+                app.PassbandFrequencyEditField.Editable = "off";
+
+                app.StopbandFrequencyEditField.Visible = "off";
+                app.StopbandFrequencyLabel.Visible = "off";
+                app.StopbandFrequencyEditField.Editable = "off";
+
+                app.PassbandFrequency2EditField.Visible = "off";
+                app.PassbandFrequency2Label.Visible = "off";
+                app.PassbandFrequency2EditField.Editable = "off";
+
+                app.StopbandFrequency2EditField.Visible = "off";
+                app.StopbandFrequency2Label.Visible = "off";
                 app.StopbandFrequency2EditField.Editable = "off";
 
                 app.CustomFilterDropDown.Visible = "off";
@@ -261,7 +312,7 @@ classdef Audio_analysis_tool < matlab.apps.AppBase
                 
                 app.StopbandFrequency2EditField.Visible = "off";
                 app.StopbandFrequency2Label.Visible = "off";
-            else
+            elseif isequal(app.CustomFilterDropDown.Value, 'Band-pass') || isequal(app.CustomFilterDropDown.Value, 'Band-stop') 
                 app.PassbandFrequencyEditField.Visible = "on";
                 app.PassbandFrequencyLabel.Visible = "on";
                 app.PassbandFrequencyEditField.Editable = "on";
@@ -277,6 +328,36 @@ classdef Audio_analysis_tool < matlab.apps.AppBase
                 app.StopbandFrequency2EditField.Visible = "on";
                 app.StopbandFrequency2Label.Visible = "on";
                 app.StopbandFrequency2EditField.Editable = "on";
+            elseif isequal(app.CustomFilterDropDown.Value, 'Box')
+                app.PassbandFrequencyLabel.Text = 'W';
+                app.PassbandFrequencyEditField.Visible = "on";
+                app.PassbandFrequencyLabel.Visible = "on";
+                app.PassbandFrequencyEditField.Editable = "on";
+
+                app.StopbandFrequencyEditField.Visible = "off";
+                app.StopbandFrequencyLabel.Visible = "off";
+                app.StopbandFrequencyEditField.Editable = "off";
+
+                app.PassbandFrequency2EditField.Visible = "off";
+                app.PassbandFrequency2Label.Visible = "off";
+                
+                app.StopbandFrequency2EditField.Visible = "off";
+                app.StopbandFrequency2Label.Visible = "off";
+            else
+                app.PassbandFrequencyLabel.Text = 'Sigma';
+                app.PassbandFrequencyEditField.Visible = "on";
+                app.PassbandFrequencyLabel.Visible = "on";
+                app.PassbandFrequencyEditField.Editable = "on";
+
+                app.StopbandFrequencyEditField.Visible = "off";
+                app.StopbandFrequencyLabel.Visible = "off";
+                app.StopbandFrequencyEditField.Editable = "off";
+
+                app.PassbandFrequency2EditField.Visible = "off";
+                app.PassbandFrequency2Label.Visible = "off";
+                
+                app.StopbandFrequency2EditField.Visible = "off";
+                app.StopbandFrequency2Label.Visible = "off";
             end
         end
 
@@ -441,13 +522,39 @@ classdef Audio_analysis_tool < matlab.apps.AppBase
                 app.Create_filter();
                 
                 % Apply filter to every channel
-                if app.channel > 1
-                    app.yCurrent = zeros(size(app.yOriginal));
-                    for i = 1:app.channel
-                        app.yCurrent(:,i) = filtfilt(app.filter,app.yOriginal(:,i));
+                % TODO: create "apply filter" function to make this part
+                % clear 
+                if isequal(app.FiltersFIRDropDown.Value, 'Box') || ...
+                   (isequal(app.FiltersFIRDropDown.Value, 'Custom') && ...
+                    isequal(app.CustomFilterDropDown.Value, 'Box'))
+                    if app.channel > 1
+                        app.yCurrent = zeros(size(app.yOriginal));
+                        for i = 1:app.channel
+                            app.yCurrent(:, i) = conv(app.yOriginal(:, i), ones(app.w, 1)/app.w, 'same');
+                        end
+                    else
+                        app.yCurrent = conv(app.yOriginal, ones(app.w, 1)/app.w, 'same');
+                    end
+                elseif isequal(app.FiltersFIRDropDown.Value, 'Gaussian') || ...
+                       (isequal(app.FiltersFIRDropDown.Value, 'Custom') && ...
+                        isequal(app.CustomFilterDropDown.Value, 'Gaussian'))
+                    if app.channel > 1
+                        app.yCurrent = zeros(size(app.yOriginal));
+                        for i = 1:app.channel
+                            app.yCurrent(:, i) = conv(app.yOriginal(:, i), app.filter, 'same');
+                        end
+                    else
+                        app.yCurrent = conv(app.yOriginal, app.filter, 'same');
                     end
                 else
-                    app.yCurrent = filtfilt(app.filter, app.yOriginal);
+                    if app.channel > 1
+                        app.yCurrent = zeros(size(app.yOriginal));
+                        for i = 1:app.channel
+                            app.yCurrent(:,i) = filtfilt(app.filter, app.yOriginal(:,i));
+                        end
+                    else
+                        app.yCurrent = filtfilt(app.filter, app.yOriginal);
+                    end
                 end
             end
         end
@@ -507,6 +614,13 @@ classdef Audio_analysis_tool < matlab.apps.AppBase
                                             StopbandFrequency2 = app.bsStopBand2, ...
                                             PassbandFrequency2 = app.bsPassBand2, ...
                                             SampleRate = app.fsCurrent);
+                case 'Box'
+                    app.firstTimeCustom = true;
+                    app.w = 12;
+                case 'Gaussian'
+                    app.w = 12;
+                    app.sigma = app.w / 6;
+                    app.filter = fspecial('gaussian', [1, app.w], app.sigma);
                 case 'Custom'
                     % It's first time -> show info alert
                     if app.firstTimeCustom
@@ -577,6 +691,11 @@ classdef Audio_analysis_tool < matlab.apps.AppBase
                                             StopbandFrequency2 = app.bsStopBand2, ...
                                             PassbandFrequency2 = app.bsPassBand2, ...
                                             SampleRate = app.fsCurrent);
+                case 'Box'
+                    app.w = app.PassbandFrequencyEditField.Value;
+                case 'Gaussian'
+                    app.sigma = app.PassbandFrequencyEditField.Value;
+                    app.filter = fspecial('gaussian', [1, app.w], app.sigma);
             end
         end
         
@@ -848,7 +967,7 @@ classdef Audio_analysis_tool < matlab.apps.AppBase
             % fprintf("current time: " + app.currentTime + "\n");
             
             % Manually adjust the time error
-            app.currentTime = app.currentTime + 0.072;
+            app.currentTime = app.currentTime + 0.05;
             app.progressLine.Value = app.currentTime;
 
             % Play to the end
@@ -1180,7 +1299,7 @@ classdef Audio_analysis_tool < matlab.apps.AppBase
 
             % Create FiltersFIRDropDown
             app.FiltersFIRDropDown = uidropdown(app.UIFigure);
-            app.FiltersFIRDropDown.Items = {'None', 'Low-pass', 'High-pass', 'Band-pass', 'Band-stop', 'Custom'};
+            app.FiltersFIRDropDown.Items = {'None', 'Low-pass', 'High-pass', 'Band-pass', 'Band-stop', 'Box', 'Gaussian', 'Custom'};
             app.FiltersFIRDropDown.ValueChangedFcn = createCallbackFcn(app, @FiltersFIRDropDownValueChanged, true);
             app.FiltersFIRDropDown.Position = [278 258 147 22];
             app.FiltersFIRDropDown.Value = 'None';
@@ -1367,7 +1486,7 @@ classdef Audio_analysis_tool < matlab.apps.AppBase
 
             % Create CustomFilterDropDown
             app.CustomFilterDropDown = uidropdown(app.UIFigure);
-            app.CustomFilterDropDown.Items = {'Low-pass', 'High-pass', 'Band-pass', 'Band-stop'};
+            app.CustomFilterDropDown.Items = {'Low-pass', 'High-pass', 'Band-pass', 'Band-stop', 'Box', 'Gaussian'};
             app.CustomFilterDropDown.ValueChangedFcn = createCallbackFcn(app, @CustomFilterDropDownValueChanged, true);
             app.CustomFilterDropDown.Visible = 'off';
             app.CustomFilterDropDown.Position = [278 219 147 22];
